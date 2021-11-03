@@ -10,7 +10,7 @@ gh extension install meiji163/gh-search
 ## Usage
 ```
 Usage:
-  search <repository> [flags]
+  gh search <repository> [flags]
 
 Examples:
 # cli repos with hacktoberfest topic
