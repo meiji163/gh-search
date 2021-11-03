@@ -1,0 +1,17 @@
+name: release
+
+on:
+  push:
+        tags:
+          - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and Release
+        #uses: cli/gh-extension-precompile@latest
+        uses: ./.github/actions/gh-extension-precompile

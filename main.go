@@ -27,7 +27,7 @@ type SearchOptions struct {
 func rootCmd() *cobra.Command {
 	opts := &SearchOptions{}
 	cmd := &cobra.Command{
-		Use:   "search <repository>",
+		Use:   "gh search <repository>",
 		Short: "search repositories",
 		Long: `Search for GitHub repositories.
 
