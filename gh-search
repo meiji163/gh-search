@@ -2,7 +2,7 @@
 set -e
 
 repo="meiji163/gh-search"
-tag="v1.0.2"
+tag="v1.0.0"
 
 extensionPath="$(dirname "$0")"
 arch="$(uname -m)"
