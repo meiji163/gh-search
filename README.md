@@ -2,6 +2,8 @@
 
 [gh](https://github.com/cli/cli) extension to search for repositories on GitHub.
 
+Requires gh version 2.2.0 or later
+
 ## Install
 ```
 gh extension install meiji163/gh-search
