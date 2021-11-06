@@ -2,7 +2,7 @@
 
 [gh](https://github.com/cli/cli) extension to search for repositories on GitHub.
 
-Requires gh version 2.2.0 or later
+Requires gh version 2.1.0 or later
 
 ## Install
 ```
