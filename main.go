@@ -15,45 +15,44 @@ import (
 type SearchOptions struct {
 	Query       string
 	Interactive bool
-	SortBy      string
 	SearchIn    string
 	Limit       int
 	Topic       string
+	Language    string
 }
 
 func rootCmd() *cobra.Command {
 	opts := &SearchOptions{}
 	cmd := &cobra.Command{
-		Use:   "gh search <repository>",
+		Use:   "gh search <query>",
 		Short: "search repositories",
 		Long: `Search for GitHub repositories.
 
-Search through names, descriptions, or readme's, 
-sort by repository stats, and filter by topic.`,
+Filter with the --topic or --lang flag, 
+or write a custom query with the -q flag.`,
 		Example: `# cli repos with hacktoberfest topic
 $ gh search cli --topic=hacktoberfest
 
-# 10 most starred cli repos
-$ gh search cli --sort=stars --limit=10`,
-		Args:          cobra.ExactArgs(1),
+# custom search with GitHub syntax
+$ gh search -q="org:cli created:>2019-01-01"`,
+		Args:          cobra.MaximumNArgs(1),
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Query = args[0]
-
-			searchIn := strings.ToLower(opts.SearchIn)
-			if searchIn != "name" && searchIn != "description" && searchIn != "readme" {
-				return errors.New(`--in argument must be "name", "description", or "readme"`)
-			}
-
-			if cmd.Flags().Changed("sort") || cmd.Flags().Changed("s") {
-				sortBy := strings.ToLower(opts.SortBy)
-				if sortBy != "stars" && sortBy != "forks" && sortBy != "issues" {
-					return errors.New(`--sort argument must be "bestmatch", "stars", "forks", or "issues"`)
+			if opts.Query == "" {
+				if len(args) < 1 {
+					return errors.New("Error: empty query")
 				}
-			}
-
-			if opts.Limit <= 0 {
-				return errors.New("invalid limit")
+				opts.Query = args[0]
+				if opts.SearchIn != "" {
+					searchIn := strings.ToLower(opts.SearchIn)
+					if searchIn != "name" && searchIn != "description" && searchIn != "readme" {
+						return errors.New(`--in argument must be "name", "description", or "readme"`)
+					}
+				}
+				if opts.Limit <= 0 {
+					return errors.New("invalid limit")
+				}
+				opts.Query = prepareQuery(opts)
 			}
 
 			return runSearch(opts)
@@ -61,9 +60,10 @@ $ gh search cli --sort=stars --limit=10`,
 	}
 
 	cmd.Flags().StringVarP(&opts.Topic, "topic", "t", "", `Specify a topic`)
-	cmd.Flags().StringVarP(&opts.SearchIn, "in", "i", "name", `Search in "name", "description", or "readme"`)
-	cmd.Flags().StringVarP(&opts.SortBy, "sort", "s", "", `Sort by "stars", "forks", or "issues"`)
-	cmd.Flags().IntVarP(&opts.Limit, "limit", "L", 30, "Max number of search results")
+	cmd.Flags().StringVarP(&opts.SearchIn, "in", "i", "", `Search in "name", "description", or "readme"`)
+	cmd.Flags().StringVarP(&opts.Language, "lang", "l", "", "Search by programming language")
+	cmd.Flags().IntVarP(&opts.Limit, "limit", "L", 50, "Max number of search results")
+	cmd.Flags().StringVarP(&opts.Query, "query", "q", "", "Query in GitHub syntax")
 	return cmd
 }
 

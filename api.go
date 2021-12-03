@@ -13,15 +13,23 @@ type Repository struct {
 	PrimaryLanguage struct{ Name string }
 }
 
+func prepareQuery(opts *SearchOptions) string {
+	query := opts.Query
+	if opts.Topic != "" {
+		query += fmt.Sprintf(" topic:%s", opts.Topic)
+	}
+	if opts.SearchIn != "" {
+		query += fmt.Sprintf(" in:%s", opts.SearchIn)
+	}
+	if opts.Language != "" {
+		query += fmt.Sprintf(" language:%s", opts.Language)
+	}
+	return query
+}
+
 func searchRepos(opts *SearchOptions) ([]Repository, int, error) {
 	searchQuery := opts.Query
 
-	if opts.Topic != "" {
-		searchQuery += fmt.Sprintf(" topic:%s", opts.Topic)
-	}
-	if opts.SearchIn != "" {
-		searchQuery += fmt.Sprintf(" in:%s", opts.SearchIn)
-	}
 	gqlQuery := `query GetRepos($limit: Int, $query: String!){
 	search(query: $query, first: $limit, type: REPOSITORY) {
 		repositoryCount
@@ -40,7 +48,6 @@ func searchRepos(opts *SearchOptions) ([]Repository, int, error) {
 		"limit": opts.Limit,
 		"query": searchQuery,
 	}
-	fmt.Println(searchQuery)
 
 	type responseData struct {
 		Search struct {
