@@ -8,12 +8,9 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/fatih/color"
+	"github.com/cli/go-gh"
 	"github.com/spf13/cobra"
 )
-
-var blue = color.New(color.FgBlue)
-var yellow = color.New(color.FgYellow)
 
 type SearchOptions struct {
 	Query       string
@@ -70,31 +67,27 @@ $ gh search cli --sort=stars --limit=10`,
 	return cmd
 }
 
-type Repository struct {
-	Name        string `json:"full_name"`
-	Description string
-	Stars       int    `json:"stargazers_count"`
-	URL         string `json:"html_url"`
-	Language    string
-}
-
 func runSearch(opts *SearchOptions) error {
-	results, err := searchRepos(opts)
-	if len(results) == 0 {
+	results, total, err := searchRepos(opts)
+	if err != nil {
+		return err
+	}
+
+	if total == 0 {
 		fmt.Printf(`No results found for "%s"%s`, opts.Query, "\n")
 	}
 
-	var repos []string
+	var repoStrs []string
 	for i, repo := range results {
-		repos = append(repos, prettyPrint(i+1, &repo))
+		repoStrs = append(repoStrs, prettyPrint(i+1, &repo))
 	}
 
-	numResults := len(repos)
+	numResults := len(repoStrs)
 
 	selector := &survey.Select{
-		Message:  fmt.Sprintf("%d Results\n", numResults),
-		Options:  repos,
-		PageSize: 6,
+		Message:  fmt.Sprintf("%d/%d Results\n", numResults, total),
+		Options:  repoStrs,
+		PageSize: 10,
 	}
 
 	var selection string
@@ -113,14 +106,18 @@ func runSearch(opts *SearchOptions) error {
 		return err
 	}
 	selectedRepo := results[n-1]
-	fmt.Printf(`%[1]sFor more info, run "gh repo view %s" or view on the web at %s%[1]s`,
-		"\n", selectedRepo.Name, color.GreenString(selectedRepo.URL))
+	args := []string{"repo", "view", selectedRepo.NameWithOwner}
+	stdOut, _, err := gh.Exec(args...)
+	if err != nil {
+		return err
+	}
+	fmt.Print(stdOut.String())
 
 	return nil
 }
 
 func prettyPrint(i int, repo *Repository) string {
-	out := fmt.Sprintf("%d %s\n", i, color.GreenString(repo.Name))
+	out := fmt.Sprintf("%d %s\n", i, repo.NameWithOwner)
 
 	dscript := repo.Description
 	if len(dscript) > 100 {
@@ -129,14 +126,16 @@ func prettyPrint(i int, repo *Repository) string {
 	}
 	out += fmt.Sprintf("\t%s\n", dscript)
 
-	if repo.Language != "" {
-		out += fmt.Sprintf("\tLanguage: %s\n", blue.Sprintf(repo.Language))
+	lang := repo.PrimaryLanguage.Name
+
+	if lang != "" {
+		out += fmt.Sprintf("\tLanguage: %s\n", lang)
 	}
 
-	if repo.Stars >= 1000 {
-		out += yellow.Sprintf("\t★ %.1fk", float32(repo.Stars)/1000.0)
+	if repo.StargazerCount >= 1000 {
+		out += fmt.Sprintf("\t★ %.1fk", float32(repo.StargazerCount)/1000.0)
 	} else {
-		out += yellow.Sprintf("\t★ %d", repo.Stars)
+		out += fmt.Sprintf("\t★ %d", repo.StargazerCount)
 	}
 	return out
 }
